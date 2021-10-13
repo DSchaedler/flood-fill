@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
-PIXELS_PER_TICK = 500
+PIXELS_PER_TICK = 1000
+PIXELS_PER_TICK_MAX = 5000
+PIXELS_PER_TICK_MIN = 1
+PIXEL_PER_TICK_INC = 25
 PIXEL_SIZE = 1
 
 def tick(args) # rubocop:disable Metrics/AbcSize
@@ -8,7 +11,19 @@ def tick(args) # rubocop:disable Metrics/AbcSize
   args.render_target(:pixels).clear_before_render = false
 
   tick_zero(args) if args.state.tick_count.zero?
-  flood_fill(args)
+
+  $p_per_tick ||= PIXELS_PER_TICK
+
+  pre_time = Time.now
+  flood_fill(args)  
+  calc_time = Time.now - pre_time
+  if calc_time > 0.02
+    $p_per_tick -= PIXEL_PER_TICK_INC unless $p_per_tick <= PIXELS_PER_TICK_MIN
+  elsif calc_time < 0.01
+    $p_per_tick += PIXEL_PER_TICK_INC unless $p_per_tick >= PIXELS_PER_TICK_MAX
+  end
+  args.outputs.labels << {x: 0, y: 700, text: "calc time: #{calc_time}"}
+  args.outputs.labels << {x: 0, y: 680, text: "p_per_tick: #{$p_per_tick}"}
 
   args.outputs.sprites << { x: 0, y: 0, w: 1280, h: 720, path: :pixels }
   args.outputs.debug << args.gtk.framerate_diagnostics_primitives
@@ -104,10 +119,11 @@ end
 def flood_fill(args)
   # $pixels_to_check = $pixels_holding.dup
 
-  times = PIXELS_PER_TICK
+  times = $p_per_tick
   pixels_to_rt = []
 
   return if $pixels_holding.empty?
+
 
   while times.positive?
 
@@ -116,7 +132,7 @@ def flood_fill(args)
     key, pixel = $pixels_holding.first
     $pixels[pixel[:x]] ||= {}
     $pixels[pixel[:x]][pixel[:y]] = true
-    pixels_to_rt << { x: pixel[:x], y: pixel[:y], w: PIXEL_SIZE, h: PIXEL_SIZE }
+    pixels_to_rt << PixelNew.new(pixel[:x], pixel[:y])
 
     $pixels_holding.shift
 
@@ -139,5 +155,19 @@ def flood_fill(args)
     times -= 1
   end
 
-  args.render_target(:pixels).solids << pixels_to_rt
+
+  args.render_target(:pixels).sprites << pixels_to_rt
+end
+
+# Class to remove erronious draw calls
+class PixelNew
+  attr_sprite
+  def initialize(x, y)
+    @x = x
+    @y = y
+  end
+
+  def draw_override(ffi)
+    ffi.draw_sprite(@x, @y, 1, 1, 'sprites/pixel.png')
+  end
 end
