@@ -4,6 +4,8 @@ PIXELS_PER_TICK = 1000
 PIXELS_PER_TICK_MAX = 5000
 PIXELS_PER_TICK_MIN = 1
 PIXEL_PER_TICK_INC = 25
+CALC_TIME_MIN = 0.015
+CALC_TIME_MAX = 0.018
 PIXEL_SIZE = 1
 
 def tick(args) # rubocop:disable Metrics/AbcSize
@@ -17,13 +19,13 @@ def tick(args) # rubocop:disable Metrics/AbcSize
   pre_time = Time.now
   flood_fill(args)  
   calc_time = Time.now - pre_time
-  if calc_time > 0.02
+  if calc_time > CALC_TIME_MAX
     $p_per_tick -= PIXEL_PER_TICK_INC unless $p_per_tick <= PIXELS_PER_TICK_MIN
-  elsif calc_time < 0.01
+  elsif calc_time < CALC_TIME_MIN
     $p_per_tick += PIXEL_PER_TICK_INC unless $p_per_tick >= PIXELS_PER_TICK_MAX
   end
-  args.outputs.labels << {x: 0, y: 700, text: "calc time: #{calc_time}"}
-  args.outputs.labels << {x: 0, y: 680, text: "p_per_tick: #{$p_per_tick}"}
+  args.outputs.labels << {x: 0, y: 360, text: "calc time: #{calc_time}"}
+  args.outputs.labels << {x: 0, y: 340, text: "p_per_tick: #{$p_per_tick}"}
 
   args.outputs.sprites << { x: 0, y: 0, w: 1280, h: 720, path: :pixels }
   args.outputs.debug << args.gtk.framerate_diagnostics_primitives
