@@ -3,10 +3,18 @@
 PIXELS_PER_TICK = 1000
 PIXELS_PER_TICK_MAX = 5000
 PIXELS_PER_TICK_MIN = 1
-PIXEL_PER_TICK_INC = 25
-CALC_TIME_MIN = 0.010
-CALC_TIME_MAX = 0.015
-PIXEL_SIZE = 1
+PIXEL_PER_TICK_INC = 17
+
+# Set times to target 50+ FPS.
+# These should be as close as possible while still having a discernable difference.
+# 0.002 should be enough
+CALC_TIME_MIN = 0.014
+CALC_TIME_MAX = 0.016
+
+# Size 2 is a good compromise between speed and reliability.
+# Higher numbers are faster, but more jagged
+# Minimum 1
+PIXEL_SIZE = 2
 
 def reset_all(_args)
   $p_per_tick = nil
@@ -27,7 +35,7 @@ def tick(args) # rubocop:disable Metrics/AbcSize
 
   $p_per_tick ||= PIXELS_PER_TICK
 
-  if $pixels_holding.length > 0
+  if $pixels_holding.length.positive?
     pre_time = Time.now
     flood_fill(args)
     calc_time = Time.now - pre_time
@@ -38,8 +46,8 @@ def tick(args) # rubocop:disable Metrics/AbcSize
     end
   end
 
-  args.outputs.labels << { x: 0, y: 360, text: "calc time: #{calc_time}" }
-  args.outputs.labels << { x: 0, y: 340, text: "p_per_tick: #{$p_per_tick}" }
+  # args.outputs.labels << { x: 0, y: 360, text: "calc time: #{calc_time}" }
+  # args.outputs.labels << { x: 0, y: 340, text: "p_per_tick: #{$p_per_tick}" }
 
   args.outputs.sprites << { x: 0, y: 0, w: 1280, h: 720, path: :pixels }
 
@@ -60,8 +68,8 @@ def tick_zero(args) # rubocop:disable Metrics/AbcSize
 
   $pixels_holding ||= {}
   center = { x: $center[:x], y: $center[:y] }
-  center[:x] = center[:x] - ( (center[:x] % PIXEL_SIZE) + ($triangle[0][:x] % PIXEL_SIZE))
-  center[:y] = center[:y] - ( (center[:y] % PIXEL_SIZE) + ($triangle[0][:y] % PIXEL_SIZE))
+  center[:x] = center[:x] - ((center[:x] % PIXEL_SIZE) + ($triangle[0][:x] % PIXEL_SIZE))
+  center[:y] = center[:y] - ((center[:y] % PIXEL_SIZE) + ($triangle[0][:y] % PIXEL_SIZE))
 
   $pixels_holding[center] = center
 
@@ -70,13 +78,14 @@ def tick_zero(args) # rubocop:disable Metrics/AbcSize
       args.render_target(:pixels).solids << { x: key_x, y: key_y, w: PIXEL_SIZE, h: PIXEL_SIZE }
     end
   end
+
+  button_box = { x: args.grid.center_x - 50, y: args.grid.top - 50, w: 100, h: 50 }
+  args.outputs.static_borders << button_box
+  args.outputs.static_labels << { x: args.grid.center_x, y: args.grid.top - 15, text: 'Reset', alignment_enum: 1 }
 end
 
 def reset_button(args)
   button_box = { x: args.grid.center_x - 50, y: args.grid.top - 50, w: 100, h: 50 }
-  args.outputs.borders << button_box
-  args.outputs.labels << { x: args.grid.center_x, y: args.grid.top - 15, text: 'Reset', alignment_enum: 1 }
-
   reset_all(args) if args.inputs.mouse.up.inside_rect? button_box
 end
 
@@ -193,6 +202,6 @@ class PixelNew
 
   def draw_override(ffi)
     ffi.draw_sprite(@x, @y, PIXEL_SIZE, PIXEL_SIZE, 'pixel')
-    #ffi.draw_sprite(@x, @y, PIXEL_SIZE, PIXEL_SIZE, 'sprites/circle.png')
+    # ffi.draw_sprite(@x, @y, PIXEL_SIZE, PIXEL_SIZE, 'sprites/circle.png')
   end
 end
