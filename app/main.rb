@@ -4,9 +4,9 @@ PIXELS_PER_TICK = 1000
 PIXELS_PER_TICK_MAX = 5000
 PIXELS_PER_TICK_MIN = 1
 PIXEL_PER_TICK_INC = 25
-CALC_TIME_MIN = 0.014
-CALC_TIME_MAX = 0.016
-PIXEL_SIZE = 1
+CALC_TIME_MIN = 0.010
+CALC_TIME_MAX = 0.015
+PIXEL_SIZE = 8
 
 def reset_all(_args)
   $p_per_tick = nil
@@ -27,14 +27,17 @@ def tick(args) # rubocop:disable Metrics/AbcSize
 
   $p_per_tick ||= PIXELS_PER_TICK
 
-  pre_time = Time.now
-  flood_fill(args)
-  calc_time = Time.now - pre_time
-  if calc_time > CALC_TIME_MAX
-    $p_per_tick -= PIXEL_PER_TICK_INC unless $p_per_tick <= PIXELS_PER_TICK_MIN
-  elsif calc_time < CALC_TIME_MIN
-    $p_per_tick += PIXEL_PER_TICK_INC unless $p_per_tick >= PIXELS_PER_TICK_MAX
+  if $pixels_holding.length > 0
+    pre_time = Time.now
+    flood_fill(args)
+    calc_time = Time.now - pre_time
+    if calc_time > CALC_TIME_MAX
+      $p_per_tick -= PIXEL_PER_TICK_INC unless $p_per_tick <= PIXELS_PER_TICK_MIN
+    elsif calc_time < CALC_TIME_MIN
+      $p_per_tick += PIXEL_PER_TICK_INC unless $p_per_tick >= PIXELS_PER_TICK_MAX
+    end
   end
+
   args.outputs.labels << { x: 0, y: 360, text: "calc time: #{calc_time}" }
   args.outputs.labels << { x: 0, y: 340, text: "p_per_tick: #{$p_per_tick}" }
 
@@ -57,11 +60,14 @@ def tick_zero(args) # rubocop:disable Metrics/AbcSize
 
   $pixels_holding ||= {}
   center = { x: $center[:x], y: $center[:y] }
+  center[:x] = center[:x] - ( (center[:x] % PIXEL_SIZE) + ($triangle[0][:x] % PIXEL_SIZE))
+  center[:y] = center[:y] - ( (center[:y] % PIXEL_SIZE) + ($triangle[0][:y] % PIXEL_SIZE))
+
   $pixels_holding[center] = center
 
   $pixels.each do |key_x, value|
     value.each_key do |key_y|
-      args.render_target(:pixels).solids << { x: key_x, y: key_y, w: 1, h: 1 }
+      args.render_target(:pixels).solids << { x: key_x, y: key_y, w: PIXEL_SIZE, h: PIXEL_SIZE }
     end
   end
 end
@@ -76,9 +82,11 @@ end
 
 def pick_vertecies(_args)
   point = {}
-  point[0] = { x: (1..1279).to_a.sample, y: (1..719).to_a.sample }
-  point[1] = { x: (1..1279).to_a.sample, y: (1..719).to_a.sample }
-  point[2] = { x: (1..1279).to_a.sample, y: (1..719).to_a.sample }
+  max_x = 1280 / PIXEL_SIZE
+  max_y = 720 / PIXEL_SIZE
+  point[0] = { x: (1..max_x).to_a.sample * PIXEL_SIZE, y: (1..max_y).to_a.sample * PIXEL_SIZE }
+  point[1] = { x: (1..max_x).to_a.sample * PIXEL_SIZE, y: (1..max_y).to_a.sample * PIXEL_SIZE }
+  point[2] = { x: (1..max_x).to_a.sample * PIXEL_SIZE, y: (1..max_y).to_a.sample * PIXEL_SIZE }
   point
 end
 
@@ -114,7 +122,7 @@ def bressenham(_args, line)
   deltax = x2 - x1
   deltay = (y2 - y1).abs
   error = deltax / 2
-  ystep = y1 < y2 ? 1 : -1
+  ystep = y1 < y2 ? PIXEL_SIZE : -PIXEL_SIZE
 
   pixels = {}
   y = y1
@@ -133,7 +141,7 @@ def bressenham(_args, line)
       y += ystep
       error += deltax
     end
-    x1 += 1
+    x1 += PIXEL_SIZE
   end
   pixels
 end
@@ -143,8 +151,6 @@ def flood_fill(args)
 
   times = $p_per_tick
   pixels_to_rt = []
-
-  return if $pixels_holding.empty?
 
   while times.positive?
 
@@ -157,19 +163,19 @@ def flood_fill(args)
 
     next_pixel0 = { x: pixel[:x] - PIXEL_SIZE, y: pixel[:y] }
     $pixels[next_pixel0[:x]] ||= {}
-    $pixels_holding[next_pixel0] = next_pixel0 unless $pixels[next_pixel0[:x]][next_pixel0[:y]] || $pixels_holding.include?(next_pixel0)
+    $pixels_holding[next_pixel0] = next_pixel0 unless $pixels_holding.include?(next_pixel0) || $pixels[next_pixel0[:x]][next_pixel0[:y]]
 
     next_pixel1 = { x: pixel[:x] + PIXEL_SIZE, y: pixel[:y] }
     $pixels[next_pixel1[:x]] ||= {}
-    $pixels_holding[next_pixel1] = next_pixel1 unless $pixels[next_pixel1[:x]][next_pixel1[:y]] || $pixels_holding.include?(next_pixel1)
+    $pixels_holding[next_pixel1] = next_pixel1 unless $pixels_holding.include?(next_pixel1) || $pixels[next_pixel1[:x]][next_pixel1[:y]]
 
     next_pixel2 = { x: pixel[:x], y: pixel[:y] - PIXEL_SIZE }
     $pixels[next_pixel2[:x]] ||= {}
-    $pixels_holding[next_pixel2] = next_pixel2 unless $pixels[next_pixel2[:x]][next_pixel2[:y]] || $pixels_holding.include?(next_pixel2)
+    $pixels_holding[next_pixel2] = next_pixel2 unless $pixels_holding.include?(next_pixel2) || $pixels[next_pixel2[:x]][next_pixel2[:y]]
 
     next_pixel3 = { x: pixel[:x], y: pixel[:y] + PIXEL_SIZE }
     $pixels[next_pixel3[:x]] ||= {}
-    $pixels_holding[next_pixel3] = next_pixel3 unless $pixels[next_pixel3[:x]][next_pixel3[:y]] || $pixels_holding.include?(next_pixel3)
+    $pixels_holding[next_pixel3] = next_pixel3 unless $pixels_holding.include?(next_pixel3) || $pixels[next_pixel3[:x]][next_pixel3[:y]]
 
     times -= 1
   end
@@ -186,6 +192,7 @@ class PixelNew
   end
 
   def draw_override(ffi)
-    ffi.draw_sprite(@x, @y, 1, 1, 'pixel')
+    ffi.draw_sprite(@x, @y, PIXEL_SIZE, PIXEL_SIZE, 'pixel')
+    #ffi.draw_sprite(@x, @y, PIXEL_SIZE, PIXEL_SIZE, 'sprites/circle.png')
   end
 end
