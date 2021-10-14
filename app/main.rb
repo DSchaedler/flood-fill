@@ -4,30 +4,44 @@ PIXELS_PER_TICK = 1000
 PIXELS_PER_TICK_MAX = 5000
 PIXELS_PER_TICK_MIN = 1
 PIXEL_PER_TICK_INC = 25
-CALC_TIME_MIN = 0.015
-CALC_TIME_MAX = 0.018
+CALC_TIME_MIN = 0.014
+CALC_TIME_MAX = 0.016
 PIXEL_SIZE = 1
+
+def reset_all(_args)
+  $p_per_tick = nil
+  $triangle = nil
+  $lines = nil
+  $center = nil
+  $pixels = nil
+  $pixels_holding = nil
+  $passes = nil
+  $gtk.reset seed: Time.now.to_i
+end
 
 def tick(args) # rubocop:disable Metrics/AbcSize
   args.gtk.log_level = :off
-  args.render_target(:pixels).clear_before_render = false
+  args.render_target(:pixels).clear_before_render = false unless args.state.tick_count.zero?
 
   tick_zero(args) if args.state.tick_count.zero?
 
   $p_per_tick ||= PIXELS_PER_TICK
 
   pre_time = Time.now
-  flood_fill(args)  
+  flood_fill(args)
   calc_time = Time.now - pre_time
   if calc_time > CALC_TIME_MAX
     $p_per_tick -= PIXEL_PER_TICK_INC unless $p_per_tick <= PIXELS_PER_TICK_MIN
   elsif calc_time < CALC_TIME_MIN
     $p_per_tick += PIXEL_PER_TICK_INC unless $p_per_tick >= PIXELS_PER_TICK_MAX
   end
-  args.outputs.labels << {x: 0, y: 360, text: "calc time: #{calc_time}"}
-  args.outputs.labels << {x: 0, y: 340, text: "p_per_tick: #{$p_per_tick}"}
+  args.outputs.labels << { x: 0, y: 360, text: "calc time: #{calc_time}" }
+  args.outputs.labels << { x: 0, y: 340, text: "p_per_tick: #{$p_per_tick}" }
 
   args.outputs.sprites << { x: 0, y: 0, w: 1280, h: 720, path: :pixels }
+
+  reset_button(args)
+
   args.outputs.debug << args.gtk.framerate_diagnostics_primitives
 end
 
@@ -50,8 +64,14 @@ def tick_zero(args) # rubocop:disable Metrics/AbcSize
       args.render_target(:pixels).solids << { x: key_x, y: key_y, w: 1, h: 1 }
     end
   end
+end
 
-  $passes ||= 100
+def reset_button(args)
+  button_box = { x: args.grid.center_x - 50, y: args.grid.top - 50, w: 100, h: 50 }
+  args.outputs.borders << button_box
+  args.outputs.labels << { x: args.grid.center_x, y: args.grid.top - 15, text: 'Reset', alignment_enum: 1 }
+
+  reset_all(args) if args.inputs.mouse.up.inside_rect? button_box
 end
 
 def pick_vertecies(_args)
@@ -126,17 +146,14 @@ def flood_fill(args)
 
   return if $pixels_holding.empty?
 
-
   while times.positive?
 
-    break unless $pixels_holding.first
+    break if $pixels_holding.size.zero?
 
-    key, pixel = $pixels_holding.first
+    pixel = $pixels_holding.shift[0]
     $pixels[pixel[:x]] ||= {}
     $pixels[pixel[:x]][pixel[:y]] = true
     pixels_to_rt << PixelNew.new(pixel[:x], pixel[:y])
-
-    $pixels_holding.shift
 
     next_pixel0 = { x: pixel[:x] - PIXEL_SIZE, y: pixel[:y] }
     $pixels[next_pixel0[:x]] ||= {}
@@ -157,7 +174,6 @@ def flood_fill(args)
     times -= 1
   end
 
-
   args.render_target(:pixels).sprites << pixels_to_rt
 end
 
@@ -170,6 +186,6 @@ class PixelNew
   end
 
   def draw_override(ffi)
-    ffi.draw_sprite(@x, @y, 1, 1, 'sprites/pixel.png')
+    ffi.draw_sprite(@x, @y, 1, 1, 'pixel')
   end
 end
