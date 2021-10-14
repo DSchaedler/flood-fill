@@ -6,7 +6,7 @@ PIXELS_PER_TICK_MIN = 1
 PIXEL_PER_TICK_INC = 25
 CALC_TIME_MIN = 0.010
 CALC_TIME_MAX = 0.015
-PIXEL_SIZE = 8
+PIXEL_SIZE = 1
 
 def reset_all(_args)
   $p_per_tick = nil
