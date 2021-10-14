@@ -32,7 +32,7 @@ def tick(args) # rubocop:disable Metrics/AbcSize
     flood_fill(args)
     calc_time = Time.now - pre_time
     if calc_time > CALC_TIME_MAX
-      $p_per_tick -= PIXEL_PER_TICK_INC unless $p_per_tick <= PIXELS_PER_TICK_MIN
+      $p_per_tick = ($p_per_tick / 2).ceil unless $p_per_tick <= PIXELS_PER_TICK_MIN
     elsif calc_time < CALC_TIME_MIN
       $p_per_tick += PIXEL_PER_TICK_INC unless $p_per_tick >= PIXELS_PER_TICK_MAX
     end
