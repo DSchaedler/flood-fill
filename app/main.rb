@@ -6,14 +6,12 @@ PIXELS_PER_TICK_MIN = 1
 PIXEL_INCREASE_MULTIPLIER = 1.5
 PIXEL_REDUCE_MULTIPLIER = 0.8
 
-# Set times to target 50+ FPS.
-# These should be as close as possible while still having a discernable difference.
+# Set times to target 50+ FPS. One tick is 0.016. These should be as close as possible while still having a discernable difference.
 # 0.002 should be enough
 CALC_TIME_MIN = 0.013
 CALC_TIME_MAX = 0.015
 
-# Size 2 is a good compromise between speed and reliability.
-# Higher numbers are faster, but more jagged
+# Size 2 is a good compromise between speed and reliability. Higher numbers are faster, but more jagged
 # Minimum 1
 PIXEL_SIZE = 2
 
