@@ -75,7 +75,7 @@ def tick_zero(args) # rubocop:disable Metrics/AbcSize
 
   $pixels.each do |key_x, value|
     value.each_key do |key_y|
-      args.render_target(:pixels).solids << { x: key_x, y: key_y, w: PIXEL_SIZE, h: PIXEL_SIZE }
+      args.render_target(:pixels).solids << PixelNew.new(key_x, key_y)
     end
   end
 
