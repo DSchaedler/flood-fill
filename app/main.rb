@@ -3,13 +3,14 @@
 PIXELS_PER_TICK = 1000
 PIXELS_PER_TICK_MAX = 5000
 PIXELS_PER_TICK_MIN = 1
-PIXEL_PER_TICK_INC = 17
+PIXEL_INCREASE_MULTIPLIER = 1.5
+PIXEL_REDUCE_MULTIPLIER = 0.8
 
 # Set times to target 50+ FPS.
 # These should be as close as possible while still having a discernable difference.
 # 0.002 should be enough
-CALC_TIME_MIN = 0.014
-CALC_TIME_MAX = 0.016
+CALC_TIME_MIN = 0.013
+CALC_TIME_MAX = 0.015
 
 # Size 2 is a good compromise between speed and reliability.
 # Higher numbers are faster, but more jagged
@@ -23,7 +24,7 @@ def reset_all(_args)
   $center = nil
   $pixels = nil
   $pixels_holding = nil
-  $passes = nil
+  $passes = 0
   $gtk.reset seed: Time.now.to_i
 end
 
@@ -40,12 +41,14 @@ def tick(args) # rubocop:disable Metrics/AbcSize
     flood_fill(args)
     calc_time = Time.now - pre_time
     if calc_time > CALC_TIME_MAX
-      $p_per_tick = ($p_per_tick / 2).ceil unless $p_per_tick <= PIXELS_PER_TICK_MIN
+      $p_per_tick = ($p_per_tick * PIXEL_REDUCE_MULTIPLIER).ceil unless $p_per_tick <= PIXELS_PER_TICK_MIN
     elsif calc_time < CALC_TIME_MIN
-      $p_per_tick += PIXEL_PER_TICK_INC unless $p_per_tick >= PIXELS_PER_TICK_MAX
+      $p_per_tick = ($p_per_tick * PIXEL_INCREASE_MULTIPLIER).ceil unless $p_per_tick >= PIXELS_PER_TICK_MAX
     end
+    #$passes += 1
   end
 
+  # args.outputs.labels << { x: 0, y: 380, text: "cycles: #{$passes}" } unless $passes.zero?
   # args.outputs.labels << { x: 0, y: 360, text: "calc time: #{calc_time}" }
   # args.outputs.labels << { x: 0, y: 340, text: "p_per_tick: #{$p_per_tick}" }
 
